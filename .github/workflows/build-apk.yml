@@ -21,7 +21,7 @@ jobs:
 
       - name: Recover project ZIP
         run: |
-          curl -fL https://githubusercontent.com -o PrivateChatAI.zip
+          curl -fL https://raw.githubusercontent.com -o PrivateChatAI.zip
           unzip -q PrivateChatAI.zip -d /tmp/privatechatai
 
       - name: Verify project
