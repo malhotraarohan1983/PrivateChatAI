@@ -35,6 +35,9 @@ jobs:
           sed -i '/io\.ktor:ktor-client-sse/d' "$PROJECT/android/app/build.gradle.kts"
 
           sed -i 's/onDelta:(String)->Unit/onDelta:suspend (String)->Unit/' "$PROJECT/android/app/src/main/java/com/privatechatai/network/Api.kt"
+
+          sed -i '/android {/a\    packaging { resources { excludes += "META-INF/LICENSE-LGPL-3.txt" } }' "$PROJECT/android/app/build.gradle.kts"
+
           sed -i '/@Composable fun AppScreen(vm:ChatViewModel)/i @OptIn(ExperimentalMaterial3Api::class)' "$PROJECT/android/app/src/main/java/com/privatechatai/MainActivity.kt"
 
       - name: Set up Java 17
@@ -58,18 +61,3 @@ jobs:
         with:
           name: PrivateChatAI-debug
           path: /tmp/privatechatai/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.10.2'
-
-      - name: Build APK
-        working-directory: /tmp/privatechatai/mnt/data/PrivateChatAI
-        run: gradle :android:app:assembleDebug --no-daemon
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: PrivateChatAI-debug
-          path: /tmp/privatechatai/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
-                                                                                                                                                      
