@@ -15,6 +15,7 @@ jobs:
       - name: Recover project ZIP
         run: |
           git show cecc74172c034fe8445fa6ac895cc2484dfb540e:PrivateChatAI.zip > PrivateChatAI.zip
+          unzip -q PrivateChatAI.zip -d /tmp/privatechatai
 
       - name: Fix project
         run: |
