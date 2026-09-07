@@ -25,6 +25,8 @@ jobs:
           sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$PROJECT/android/app/build.gradle.kts"
 
           sed -i '/io\.ktor:ktor-client-sse/d' "$PROJECT/android/app/build.gradle.kts"
+          sed -i 's/onDelta:(String)->Unit/onDelta:suspend (String)->Unit/' "$PROJECT/android/app/src/main/java/com/privatechatai/network/Api.kt"
+sed -i 's/\.let(onDelta)/.let{onDelta(it)}/' "$PROJECT/android/app/src/main/java/com/privatechatai/network/Api.kt"
 
       - name: Set up Java
         uses: actions/setup-java@v4
