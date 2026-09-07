@@ -14,8 +14,15 @@ jobs:
 
       - name: Recover project ZIP
         run: |
-          curl -L https://raw.githubusercontent.com/malhotraarohan1983/PrivateChatAI/cecc74172c034fe8445fa6ac895cc2484dfb540e/PrivateChatAI.zip -o PrivateChatAI.zip
+          curl -fL https://raw.githubusercontent.com/malhotraarohan1983/PrivateChatAI/main/PrivateChatAI.zip -o PrivateChatAI.zip
           unzip -q PrivateChatAI.zip -d /tmp/privatechatai
+
+      - name: Verify project
+        run: |
+          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
+          test -f "$PROJECT/settings.gradle.kts"
+          test -f "$PROJECT/android/app/build.gradle.kts"
+          test -f "$PROJECT/android/app/src/main/java/com/privatechatai/MainActivity.kt"
 
       - name: Fix project
         run: |
@@ -35,6 +42,21 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build APK
+        working-directory: /tmp/privatechatai/mnt/data/PrivateChatAI
+        run: |
+          gradle :android:app:assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PrivateChatAI-debug
+          path: /tmp/privatechatai/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
