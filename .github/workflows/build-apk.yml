@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -14,6 +15,14 @@ jobs:
         run: |
           mkdir -p /tmp/privatechatai
           unzip -q PrivateChatAI.zip -d /tmp/privatechatai
+
+      - name: Fix Compose Compiler configuration
+        run: |
+          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
+
+          sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$PROJECT/build.gradle.kts"
+
+          sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$PROJECT/android/app/build.gradle.kts"
 
       - name: Set up Java
         uses: actions/setup-java@v4
