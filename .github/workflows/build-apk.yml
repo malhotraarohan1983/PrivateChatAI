@@ -12,9 +12,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 1. Setup Java environment required to build Android apps
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
       - name: Recover project ZIP
         run: |
-          curl -fL https://raw.githubusercontent.com/malhotraarohan1983/PrivateChatAI/main/PrivateChatAI.zip -o PrivateChatAI.zip
+          curl -fL https://githubusercontent.com -o PrivateChatAI.zip
           unzip -q PrivateChatAI.zip -d /tmp/privatechatai
 
       - name: Verify project
@@ -38,7 +45,6 @@ jobs:
         run: |
           PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
           
-          # Append the packaging block required to fix the duplicate META-INF/DEPENDENCIES error
           cat << 'EOF' >> "$PROJECT/android/app/build.gradle.kts"
 
           android {
@@ -53,4 +59,19 @@ jobs:
               }
           }
           EOF
+
+      # 2. Grant permissions and run the actual compilation command
+      - name: Build with Gradle
+        run: |
+          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
+          cd "$PROJECT/android"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # 3. Upload the compiled APK file so it shows up under Artifacts
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: privatechat-ai-debug-apk
+          path: /tmp/privatechatai/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
           
