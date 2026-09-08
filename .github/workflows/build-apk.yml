@@ -19,14 +19,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # 2. Recover the project ZIP using the correct wrapped URL address
+      # 2. Unzip locally instead of using curl over the network
       - name: Recover project ZIP
         run: |
-          URL="https://githubusercontent.com"
-          PATH="/malhotraarohan1983/PrivateChatAI/main/PrivateChatAI.zip"
-          curl -fL "${URL}${PATH}" -o PrivateChatAI.zip
-          unzip -q PrivateChatAI.zip -d /tmp/privatechatai
-          
+          unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/privatechatai
 
       - name: Verify project
         run: |
