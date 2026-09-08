@@ -24,29 +24,24 @@ jobs:
         run: |
           unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/privatechatai
 
-      - name: Verify project
-        run: |
-          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
-          test -f "$PROJECT/settings.gradle.kts"
-          test -f "$PROJECT/android/app/build.gradle.kts"
-          test -f "$PROJECT/android/app/src/main/java/com/privatechatai/MainActivity.kt"
-
-      - name: Fix project
-        run: |
-          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
-
-          sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$PROJECT/build.gradle.kts"
-
-          sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$PROJECT/android/app/build.gradle.kts"
-
-          sed -i '/io\.ktor:ktor-client-sse/d' "$PROJECT/android/app/build.gradle.kts"
-
-      # 3. Inject the packaging block required to fix the duplicate resource error
+      # 3. Locate the actual project paths dynamically
       - name: Inject Gradle Packaging Fix
         run: |
-          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
+          # Dynamically look for where build.gradle.kts exists in the unzipped folder
+          GRADLE_FILE=$(find /tmp/privatechatai -name "build.gradle.kts" | grep "android/app" | head -n 1)
+          ROOT_GRADLE=$(find /tmp/privatechatai -maxdepth 4 -name "build.gradle.kts" | grep -v "android/" | head -n 1)
           
-          cat << 'EOF' >> "$PROJECT/android/app/build.gradle.kts"
+          # Inject Compose dependencies if needed
+          if [ -f "$ROOT_GRADLE" ]; then
+            sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
+          fi
+          
+          if [ -f "$GRADLE_FILE" ]; then
+            sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$GRADLE_FILE"
+            sed -i '/io\.ktor:ktor-client-sse/d' "$GRADLE_FILE"
+            
+            # Append the packaging configurations block directly into it
+            cat << 'EOF' >> "$GRADLE_FILE"
 
           android {
               packaging {
@@ -60,18 +55,22 @@ jobs:
               }
           }
           EOF
+          fi
 
-      # 4. Grant execution permissions and run the compilation command
+      # 4. Find gradlew, mark it executable, and run compilation
       - name: Build with Gradle
         run: |
-          PROJECT="/tmp/privatechatai/mnt/data/PrivateChatAI"
-          cd "$PROJECT/android"
+          # Automatically search for where the gradlew script folder is sitting
+          GRADLEW_PATH=$(find /tmp/privatechatai -name "gradlew" -head -n 1)
+          ANDROID_DIR=$(dirname "$GRADLEW_PATH")
+          
+          cd "$ANDROID_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 5. Upload the compiled file so it becomes available in your Artifacts tab
+      # 5. Find the compiled APK and upload it
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: privatechat-ai-debug-apk
-          path: /tmp/privatechatai/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
+          path: /tmp/privatechatai/**/build/outputs/apk/debug/app-debug.apk
