@@ -60,8 +60,8 @@ jobs:
       # 4. Find gradlew, mark it executable, and run compilation
       - name: Build with Gradle
         run: |
-          # Automatically search for where the gradlew script folder is sitting
-          GRADLEW_PATH=$(find /tmp/privatechatai -name "gradlew" -head -n 1)
+          # Fixed the pipe structure here to avoid the find error
+          GRADLEW_PATH=$(find /tmp/privatechatai -name "gradlew" | head -n 1)
           ANDROID_DIR=$(dirname "$GRADLEW_PATH")
           
           cd "$ANDROID_DIR"
