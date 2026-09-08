@@ -40,8 +40,8 @@ jobs:
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Downgrade the nonexistent 3.0.3 version down to the stable available 3.0.1 variant
-            sed -i 's/ktor-client-sse:3.0.3/ktor-client-sse:3.0.1/g' "$APP_GRADLE"
+            # Intercept any Ktor SSE package version string and downgrade it to the stable 3.0.0 package
+            sed -i 's/ktor-client-sse:[0-9.]*/ktor-client-sse:3.0.0/g' "$APP_GRADLE"
             
             # Append packaging configuration and permit Experimental Material APIs in Kotlin compiler options
             cat << 'EOF' >> "$APP_GRADLE"
