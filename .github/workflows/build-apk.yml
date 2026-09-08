@@ -52,6 +52,7 @@ jobs:
                       excludes += "/META-INF/LICENSE.txt"
                       excludes += "/META-INF/NOTICE"
                       excludes += "/META-INF/NOTICE.txt"
+                      excludes += "/META-INF/LICENSE-LGPL-3.txt"
                   }
               }
           }
