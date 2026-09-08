@@ -12,36 +12,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Setup Java environment required to build Android apps
+      # 1. Provide the proper JDK environment required for compilation
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 2. Unzip locally instead of using curl over the network
+      # 2. Extract the ZIP locally to a flattened workspace folder
       - name: Recover project ZIP
         run: |
-          unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/privatechatai
+          unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/extracted_project
 
-      # 3. Locate the actual project paths dynamically
-      - name: Inject Gradle Packaging Fix
+      # 3. Apply all gradle file fixes in the direct target paths
+      - name: Inject Configuration and Fixes
         run: |
-          # Dynamically look for where build.gradle.kts exists in the unzipped folder
-          GRADLE_FILE=$(find /tmp/privatechatai -name "build.gradle.kts" | grep "android/app" | head -n 1)
-          ROOT_GRADLE=$(find /tmp/privatechatai -maxdepth 4 -name "build.gradle.kts" | grep -v "android/" | head -n 1)
-          
-          # Inject Compose dependencies if needed
+          # Define the target paths explicitly based on the internal ZIP structures
+          ROOT_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/build.gradle.kts"
+          APP_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build.gradle.kts"
+
+          # Fix the root build file dependencies
           if [ -f "$ROOT_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
-          
-          if [ -f "$GRADLE_FILE" ]; then
-            sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$GRADLE_FILE"
-            sed -i '/io\.ktor:ktor-client-sse/d' "$GRADLE_FILE"
+
+          # Fix the app build file dependencies and strip problem plugins
+          if [ -f "$APP_GRADLE" ]; then
+            sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
+            sed -i '/io\.ktor:ktor-client-sse/d' "$APP_GRADLE"
             
-            # Append the packaging configurations block directly into it
-            cat << 'EOF' >> "$GRADLE_FILE"
+            # Inject the packaging blocks to suppress the META-INF duplicate failures
+            cat << 'EOF' >> "$APP_GRADLE"
 
           android {
               packaging {
@@ -57,20 +58,23 @@ jobs:
           EOF
           fi
 
-      # 4. Find gradlew, mark it executable, and run compilation
+      # 4. Navigate into the explicit folder, force wrapper verification, and build
       - name: Build with Gradle
         run: |
-          # Fixed the pipe structure here to avoid the find error
-          GRADLEW_PATH=$(find /tmp/privatechatai -name "gradlew" | head -n 1)
-          ANDROID_DIR=$(dirname "$GRADLEW_PATH")
+          cd /tmp/extracted_project/mnt/data/PrivateChatAI/android
           
-          cd "$ANDROID_DIR"
+          # Ensure gradlew exists or instantly generate it using system fallback to prevent crashes
+          if [ ! -f "gradlew" ]; then
+            echo "Local execution wrapper was not packaged. Re-generating gradlew..."
+            gradle wrapper
+          fi
+          
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # 5. Find the compiled APK and upload it
+      # 5. Safe wildcard export path to pull the final debug build file out
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: privatechat-ai-debug-apk
-          path: /tmp/privatechatai/**/build/outputs/apk/debug/app-debug.apk
+          path: /tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
