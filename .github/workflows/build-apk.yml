@@ -58,17 +58,20 @@ jobs:
           EOF
           fi
 
-      # 4. Navigate into the explicit folder, force wrapper verification, and build
+      # 4. Step back to the root folder context to initialize the wrapper, then compile
       - name: Build with Gradle
         run: |
-          cd /tmp/extracted_project/mnt/data/PrivateChatAI/android
+          # Go to the root project folder containing settings.gradle.kts
+          cd /tmp/extracted_project/mnt/data/PrivateChatAI
           
-          # Ensure gradlew exists or instantly generate it using system fallback to prevent crashes
-          if [ ! -f "gradlew" ]; then
-            echo "Local execution wrapper was not packaged. Re-generating gradlew..."
+          # Initialize the wrapper execution keys from the root instead of the subfolder
+          if [ ! -f "android/gradlew" ]; then
+            echo "Local execution wrapper was not packaged. Re-generating gradlew from project root..."
             gradle wrapper
           fi
           
+          # Now shift into the android sub-directory and execute compile commands
+          cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
