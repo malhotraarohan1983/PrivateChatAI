@@ -58,22 +58,20 @@ jobs:
           EOF
           fi
 
-      # 4. Step back to the root folder context to initialize the wrapper, then compile
+      # 4. Stay inside the master project root folder for both the wrapper setup AND compilation
       - name: Build with Gradle
         run: |
-          # Go to the root project folder containing settings.gradle.kts
           cd /tmp/extracted_project/mnt/data/PrivateChatAI
           
-          # Initialize the wrapper execution keys from the root instead of the subfolder
-          if [ ! -f "android/gradlew" ]; then
+          # Initialize the wrapper execution keys from the root
+          if [ ! -f "gradlew" ]; then
             echo "Local execution wrapper was not packaged. Re-generating gradlew from project root..."
             gradle wrapper
           fi
           
-          # Now shift into the android sub-directory and execute compile commands
-          cd android
+          # Execute the compilation directly from the root targeting the app module
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew :android:app:assembleDebug
 
       # 5. Safe wildcard export path to pull the final debug build file out
       - name: Upload APK Artifact
