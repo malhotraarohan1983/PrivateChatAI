@@ -22,8 +22,11 @@ jobs:
       # 2. Recover the project ZIP using the correct wrapped URL address
       - name: Recover project ZIP
         run: |
-          curl -fL "https://githubusercontent.com" -o PrivateChatAI.zip
+          URL="https://githubusercontent.com"
+          PATH="/malhotraarohan1983/PrivateChatAI/main/PrivateChatAI.zip"
+          curl -fL "${URL}${PATH}" -o PrivateChatAI.zip
           unzip -q PrivateChatAI.zip -d /tmp/privatechatai
+          
 
       - name: Verify project
         run: |
