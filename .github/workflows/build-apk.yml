@@ -40,8 +40,8 @@ jobs:
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Re-target the non-existent 3.x packages down to the stable 2.4.3 release build
-            sed -i 's/ktor-client-sse:[0-9.]*/ktor-client-sse:2.4.3/g' "$APP_GRADLE"
+            # Re-target the non-existent version strings to a verified, available Ktor 3.x release build
+            sed -i 's/ktor-client-sse:[0-9.]*/ktor-client-sse:3.0.0-rc-1/g' "$APP_GRADLE"
             
             # Append packaging configuration and permit Experimental Material APIs in Kotlin compiler options
             cat << 'EOF' >> "$APP_GRADLE"
