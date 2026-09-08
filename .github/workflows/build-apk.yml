@@ -36,10 +36,11 @@ jobs:
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
 
-          # Fix the app build file dependencies and strip problem plugins
+          # Fix the app build file dependencies and preserve network dependencies safely
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
-            sed -i '/io\.ktor:ktor-client-sse/d' "$APP_GRADLE"
+            
+            # REMOVED THE DELETION LINE! We keep the ktor-client-sse network streaming plugin intact.
             
             # Append packaging configuration and permit Experimental Material APIs in Kotlin compiler options
             cat << 'EOF' >> "$APP_GRADLE"
