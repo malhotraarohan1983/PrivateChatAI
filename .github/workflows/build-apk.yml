@@ -36,11 +36,12 @@ jobs:
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
 
-          # Fix the app build file dependencies and preserve network dependencies safely
+          # Fix the app build file dependencies and dynamically downgrade the broken Ktor version
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # REMOVED THE DELETION LINE! We keep the ktor-client-sse network streaming plugin intact.
+            # Downgrade the nonexistent 3.0.3 version down to the stable available 3.0.1 variant
+            sed -i 's/ktor-client-sse:3.0.3/ktor-client-sse:3.0.1/g' "$APP_GRADLE"
             
             # Append packaging configuration and permit Experimental Material APIs in Kotlin compiler options
             cat << 'EOF' >> "$APP_GRADLE"
@@ -85,3 +86,4 @@ jobs:
         with:
           name: privatechat-ai-debug-apk
           path: /tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
+          
