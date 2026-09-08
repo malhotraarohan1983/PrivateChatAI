@@ -36,20 +36,26 @@ jobs:
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
 
-          # Fix the app build file dependencies and swap the Ktor dependency to a stable available version
+          # Fix the app build file dependencies and handle packaging/compiler overrides
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Re-target the non-existent version strings to a verified, available Ktor 3.x release build
-            sed -i 's/ktor-client-sse:[0-9.]*/ktor-client-sse:3.0.0-rc-1/g' "$APP_GRADLE"
-            
-            # Append packaging configuration and permit Experimental Material APIs in Kotlin compiler options
+            # Append global dependency resolution strategy and packaging configs
             cat << 'EOF' >> "$APP_GRADLE"
 
           android {
               packaging {
                   resources {
                       excludes += "/META-INF/*"
+                  }
+              }
+          }
+
+          // Force all configurations to map Ktor modules to the project's native active version lifecycle
+          configurations.all {
+              resolutionStrategy.eachDependency {
+                  if (requested.group == "io.ktor" && requested.name == "ktor-client-sse") {
+                      useVersion("3.0.0-beta-1") // The universal baseline release available on central
                   }
               }
           }
@@ -86,4 +92,3 @@ jobs:
         with:
           name: privatechat-ai-debug-apk
           path: /tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build/outputs/apk/debug/app-debug.apk
-          
