@@ -114,16 +114,24 @@ jobs:
               implementation("androidx.compose.material3:material3")
 
               // Ktor Network streaming modules explicitly aligned to verified stable JVM targets
-              implementation("io.ktor:ktor-client-core:2.3.12")
-              implementation("io.ktor:ktor-client-cio:2.3.12")
-              implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
-              implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
-              implementation("io.ktor:ktor-client-sse-jvm:2.3.12")
+              implementation("io.ktor:ktor-client-core:3.0.0")
+              implementation("io.ktor:ktor-client-cio:3.0.0")
+              implementation("io.ktor:ktor-client-content-negotiation:3.0.0")
+              implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.0")
+              implementation("io.ktor:ktor-client-sse:3.0.0")
+          }
+
+          configurations.all {
+              resolutionStrategy.eachDependency {
+                  if (requested.group == "io.ktor") {
+                      useVersion("3.0.0")
+                  }
+              }
           }
 
           tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-              kotlinOptions {
-                  freeCompilerArgs += listOf(
+              compilerOptions {
+                  freeCompilerArgs.addAll(
                       "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
                       "-opt-in=androidx.compose.material.ExperimentalMaterialApi"
                   )
