@@ -24,34 +24,44 @@ jobs:
         run: |
           unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/extracted_project
 
-      # 3. Apply packaging fixes and append a local file dependency fallback
+      # 3. Handle structural configuration fixes directly inside the project tree
       - name: Inject Configuration and Fixes
         run: |
-          # Define the target paths explicitly based on the internal ZIP structures
+          # Define explicit target paths based on the internal ZIP structures
+          ROOT_SETTINGS="/tmp/extracted_project/mnt/data/PrivateChatAI/settings.gradle.kts"
           ROOT_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/build.gradle.kts"
           APP_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build.gradle.kts"
-          LIBS_DIR="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/libs"
+
+          # Force Settings to permit project-level repositories to prevent the lock checking errors
+          if [ -f "$ROOT_SETTINGS" ]; then
+            sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING)/g' "$ROOT_SETTINGS"
+            sed -i 's/repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)/repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING)/g' "$ROOT_SETTINGS"
+          fi
 
           # Fix the root build file dependencies
           if [ -f "$ROOT_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
 
-          # Fix the app build file dependencies and preserve network dependencies safely
+          # Fix the app build file dependencies and handle network mapping securely
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Create a physical local libs directory inside the app module
-            mkdir -p "$LIBS_DIR"
-            
-            # Hard-download the official compiled jar file for ktor-client-sse directly into the local libs folder
-            curl -fL "https://maven.org" -o "$LIBS_DIR/ktor-client-sse.jar"
-            
-            # Clean out any old broken network string representations
+            # Wipe out old string replacements or broken manual paths completely
             sed -i '/ktor-client-sse/d' "$APP_GRADLE"
 
-            # Append packaging configs, local file dependencies, and permit Experimental Material APIs
+            # Append clean configurations, active repositories, and permit Experimental Material APIs
             cat << 'EOF' >> "$APP_GRADLE"
+
+          repositories {
+              google()
+              mavenCentral()
+          }
+
+          dependencies {
+              // Map the client streaming utility securely using the official Ktor release channel
+              implementation("io.ktor:ktor-client-sse:3.0.0-beta-2")
+          }
 
           android {
               packaging {
@@ -59,11 +69,6 @@ jobs:
                       excludes += "/META-INF/*"
                   }
               }
-          }
-
-          dependencies {
-              // Directly force the compiler to include the local jar file we just downloaded
-              implementation(files("libs/ktor-client-sse.jar"))
           }
 
           tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
