@@ -36,15 +36,17 @@ jobs:
             sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
           fi
 
-          # Fix the app build file dependencies and completely replace the broken ktor dependency
+          # Fix the app build file dependencies and preserve network dependencies safely
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Completely strip out any line containing the broken client-sse text library to guarantee it passes checkDebugAarMetadata
-            sed -i '/ktor-client-sse/d' "$APP_GRADLE"
-            
-            # Append packaging configuration, fallback compile setups, and permit Experimental Material APIs
+            # Inject Maven Central explicitly into the app build configuration so it can discover modern Ktor 3.x modules
             cat << 'EOF' >> "$APP_GRADLE"
+
+          repositories {
+              google()
+              mavenCentral()
+          }
 
           android {
               packaging {
@@ -52,17 +54,6 @@ jobs:
                       excludes += "/META-INF/*"
                   }
               }
-          }
-
-          // Force Gradle to ignore compilation conflicts for the missing modules during validation checking
-          configurations.all {
-              exclude(group = "io.ktor", module = "ktor-client-sse")
-          }
-
-          dependencies {
-              // Inject core fallback dependencies to ensure internal class mappings work without throwing errors
-              implementation("io.ktor:ktor-client-core:2.3.12")
-              implementation("io.ktor:ktor-client-serialization:2.3.12")
           }
 
           tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
