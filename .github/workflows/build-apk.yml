@@ -12,92 +12,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Provide the proper JDK environment required for compilation
       - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 2. Extract the ZIP locally to a flattened workspace folder
       - name: Recover project ZIP
         run: |
           unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/extracted_project
 
-      # 3. Handle structural configuration fixes directly inside the project tree
-      - name: Inject Configuration and Fixes
-        run: |
-          # Define explicit target paths based on the internal ZIP structures
-          ROOT_SETTINGS="/tmp/extracted_project/mnt/data/PrivateChatAI/settings.gradle.kts"
-          ROOT_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/build.gradle.kts"
-          APP_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build.gradle.kts"
-
-          # Force Settings to shift repository locking mode down to PREFER_PROJECT safely
-          if [ -f "$ROOT_SETTINGS" ]; then
-            sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' "$ROOT_SETTINGS"
-            sed -i 's/repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' "$ROOT_SETTINGS"
-          fi
-
-          # Fix the root build file dependencies
-          if [ -f "$ROOT_GRADLE" ]; then
-            sed -i '/id("org.jetbrains.kotlin.plugin.serialization") version "2.0.21" apply false/a\    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21" apply false' "$ROOT_GRADLE"
-          fi
-
-          # Fix the app build file dependencies and handle network mapping securely
-          if [ -f "$APP_GRADLE" ]; then
-            sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
-            
-            # Wipe out old string replacements or broken manual paths completely
-            sed -i '/ktor-client-sse/d' "$APP_GRADLE"
-
-            # Append clean configurations, active repositories, and permit Experimental Material APIs
-            cat << 'EOF' >> "$APP_GRADLE"
-
-          repositories {
-              google()
-              mavenCentral()
-          }
-
-          dependencies {
-              // Fixed: Using the proper Kotlin double slash comment format here
-              implementation("io.ktor:ktor-client-sse-jvm:2.3.12")
-          }
-
-          android {
-              packaging {
-                  resources {
-                      excludes += "/META-INF/*"
-                  }
-              }
-          }
-
-          tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-              kotlinOptions {
-                  freeCompilerArgs += listOf(
-                      "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
-                      "-opt-in=androidx.compose.material.ExperimentalMaterialApi"
-                  )
-              }
-          }
-          EOF
-          fi
-
-      # 4. Stay inside the master project root folder for both the wrapper setup AND compilation
       - name: Build with Gradle
         run: |
           cd /tmp/extracted_project/mnt/data/PrivateChatAI
           
-          # Initialize the wrapper execution keys from the root
           if [ ! -f "gradlew" ]; then
-            echo "Local execution wrapper was not packaged. Re-generating gradlew from project root..."
             gradle wrapper
           fi
           
-          # Execute the compilation directly from the root targeting the app module
           chmod +x gradlew
           ./gradlew :android:app:assembleDebug
 
-      # 5. Safe wildcard export path to pull the final debug build file out
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
