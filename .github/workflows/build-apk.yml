@@ -32,10 +32,10 @@ jobs:
           ROOT_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/build.gradle.kts"
           APP_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build.gradle.kts"
 
-          # Force Settings to permit project-level repositories to prevent the lock checking errors
+          # Force Settings to shift repository locking mode down to PREFER_PROJECT safely
           if [ -f "$ROOT_SETTINGS" ]; then
-            sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING)/g' "$ROOT_SETTINGS"
-            sed -i 's/repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)/repositoriesMode.set(RepositoriesMode.PRESERVE_EXISTING)/g' "$ROOT_SETTINGS"
+            sed -i 's/repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' "$ROOT_SETTINGS"
+            sed -i 's/repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)/repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)/g' "$ROOT_SETTINGS"
           fi
 
           # Fix the root build file dependencies
@@ -59,8 +59,8 @@ jobs:
           }
 
           dependencies {
-              // Map the client streaming utility securely using the official Ktor release channel
-              implementation("io.ktor:ktor-client-sse:3.0.0-beta-2")
+              # Map the client streaming utility explicitly using its native target configuration
+              implementation("io.ktor:ktor-client-sse-jvm:2.3.12")
           }
 
           android {
