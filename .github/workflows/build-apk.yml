@@ -24,12 +24,13 @@ jobs:
         run: |
           unzip -q "$GITHUB_WORKSPACE/PrivateChatAI.zip" -d /tmp/extracted_project
 
-      # 3. Apply all gradle file fixes in the direct target paths
+      # 3. Apply packaging fixes and append a local file dependency fallback
       - name: Inject Configuration and Fixes
         run: |
           # Define the target paths explicitly based on the internal ZIP structures
           ROOT_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/build.gradle.kts"
           APP_GRADLE="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/build.gradle.kts"
+          LIBS_DIR="/tmp/extracted_project/mnt/data/PrivateChatAI/android/app/libs"
 
           # Fix the root build file dependencies
           if [ -f "$ROOT_GRADLE" ]; then
@@ -40,13 +41,17 @@ jobs:
           if [ -f "$APP_GRADLE" ]; then
             sed -i '/id("org.jetbrains.kotlin.android")/a\    id("org.jetbrains.kotlin.plugin.compose")' "$APP_GRADLE"
             
-            # Inject Maven Central explicitly into the app build configuration so it can discover modern Ktor 3.x modules
-            cat << 'EOF' >> "$APP_GRADLE"
+            # Create a physical local libs directory inside the app module
+            mkdir -p "$LIBS_DIR"
+            
+            # Hard-download the official compiled jar file for ktor-client-sse directly into the local libs folder
+            curl -fL "https://maven.org" -o "$LIBS_DIR/ktor-client-sse.jar"
+            
+            # Clean out any old broken network string representations
+            sed -i '/ktor-client-sse/d' "$APP_GRADLE"
 
-          repositories {
-              google()
-              mavenCentral()
-          }
+            # Append packaging configs, local file dependencies, and permit Experimental Material APIs
+            cat << 'EOF' >> "$APP_GRADLE"
 
           android {
               packaging {
@@ -54,6 +59,11 @@ jobs:
                       excludes += "/META-INF/*"
                   }
               }
+          }
+
+          dependencies {
+              // Directly force the compiler to include the local jar file we just downloaded
+              implementation(files("libs/ktor-client-sse.jar"))
           }
 
           tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
