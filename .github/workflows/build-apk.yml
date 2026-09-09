@@ -59,7 +59,7 @@ jobs:
           }
 
           dependencies {
-              # Map the client streaming utility explicitly using its native target configuration
+              // Fixed: Using the proper Kotlin double slash comment format here
               implementation("io.ktor:ktor-client-sse-jvm:2.3.12")
           }
 
